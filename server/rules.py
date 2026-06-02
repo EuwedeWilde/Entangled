@@ -493,10 +493,14 @@ def build_cluster_row(ctx: RowCtx) -> tuple[str, list[str], list[str]]:
         i = 0
         while i < total_cs:
             if corner_mask[i] and i + 1 < total_cs and corner_mask[i + 1]:
-                # consume the pair of corner cs into one shared anchor
+                # Consume the pair of corner cs into one shared anchor (the
+                # doubled corner). Only the chain-space BETWEEN the two corner
+                # clusters is a true corner gap (the wider corner_gap); the
+                # chain-space AFTER the pair leads into the next side and must
+                # use the side_gap.
                 a = next_anchor()
                 emit_cluster(a); emit_cs(corner=True)
-                emit_cluster(a); emit_cs(corner=True)
+                emit_cluster(a); emit_cs(corner=False)
                 i += 2
             else:
                 emit_cluster(next_anchor()); emit_cs(corner=bool(corner_mask[i]))

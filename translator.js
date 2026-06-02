@@ -52,9 +52,10 @@
   // because the round walks the previous round's clusters in reverse.
   // ---------------------------------------------------------------------------
   var _gKMaxByRound = {};
+  var _gCsMaxByRound = {};
   var _gSetupChainByRound = {};
 
-  function _gResetState() { _gKMaxByRound = {}; _gSetupChainByRound = {}; }
+  function _gResetState() { _gKMaxByRound = {}; _gCsMaxByRound = {}; _gSetupChainByRound = {}; }
 
   function _gOrdinal(n) {
     var s = ["th", "st", "nd", "rd"];
@@ -72,6 +73,18 @@
       var r = parseInt(m[1], 10), n = parseInt(m[2], 10);
       if (_gKMaxByRound[r] === undefined || n > _gKMaxByRound[r]) {
         _gKMaxByRound[r] = n;
+      }
+    }
+    // Chain-space group labels: cs_{round}_{idx}. A cluster in a later round
+    // anchors onto one of these with @cs_r_k. We record the max idx per round
+    // so the next round's anchors can be numbered in REVERSE (the work is
+    // turned each round, so the new round opens in the previous round's LAST
+    // chain-space — see rules.py _anchor_pool).
+    var cre = /cs_(\d+)_(\d+)/g, cm;
+    while ((cm = cre.exec(lineSrc)) !== null) {
+      var cr = parseInt(cm[1], 10), cn = parseInt(cm[2], 10);
+      if (_gCsMaxByRound[cr] === undefined || cn > _gCsMaxByRound[cr]) {
+        _gCsMaxByRound[cr] = cn;
       }
     }
     var sm = lineSrc.match(/(\d+)ch\s*,\s*ch\.start(\d+)/);
@@ -160,11 +173,12 @@
     if (chunk.startsWith("#")) return null;
 
     // ---- Granny-square special tokens --------------------------------------
-    // Magic ring: the generator emits `ring.Ring` as the whole round-0 line.
-    if (/^ring\.Ring$/i.test(chunk)) return "make a magic loop";
+    // Magic ring: the generator emits the lone round-0 line as `ring` with an
+    // arbitrary label, e.g. `ring.R` or `ring.Ring`.
+    if (/^ring(?:\.[A-Za-z_][\w]*)?$/i.test(chunk)) return "Make a magic loop";
 
     // `turn` (custom stitch the generator appends to close a round visually).
-    if (chunk === "turn") return "turn piece";
+    if (chunk === "turn") return "turn the piece";
 
     // ---- Inline state: $var=expr$ or $...$ ----
     if (/^\$.*\$$/.test(chunk)) {
@@ -263,10 +277,11 @@
         labelGloss = "join into a ring (label " + label.replace(/\[\s*\]/g, "") + ")";
       } else if (/^chain_space/i.test(label)) {
         labelGloss = "as a chain-space (label " + label + ")";
-      } else if (/^[KCS]\d+_\d+$/.test(label)) {
-        // Internal generator labels — cluster anchors (K), corner spaces (C),
-        // side markers (S). Meaningful to the generator, noise to a
-        // crocheter. Hide them; the bare chain count still shows.
+      } else if (/^(?:[KCS]\d+_\d+|(?:st|cs|cl)_\d+_\d+)$/.test(label)) {
+        // Internal generator labels — individual stitches (st), chain-space
+        // groups (cs), cluster groups (cl), and the older corner/side/anchor
+        // forms (K/C/S). Meaningful to the generator, noise to a crocheter.
+        // Hide them; the bare stitch/chain description still shows.
         labelGloss = null;
       } else {
         labelGloss = "labelled '" + label + "'";
@@ -499,7 +514,26 @@
       return "to close the round in the top of the setup chain";
     }
 
-    // Granny cluster anchor: K{round}_{idx}. Render as a chain-gap position
+    // Granny chain-space anchor: cs_{round}_{idx}. A cluster is worked INTO
+    // one of the previous round's chain-spaces. The work is turned each round,
+    // so the previous round's chain-spaces are consumed in REVERSE order:
+    // position N = (max cs index in that round) - idx + 1. So in row 3 the
+    // source's cs_1_4 becomes the 1st chain space, cs_1_3 the 2nd, etc.; in
+    // row 4 cs_2_8 becomes the 1st, and so on.
+    var csMatch = t.match(/^cs_(\d+)_(\d+)$/);
+    if (csMatch) {
+      var csr = parseInt(csMatch[1], 10);
+      var csidx = parseInt(csMatch[2], 10);
+      var maxCs = _gCsMaxByRound[csr];
+      if (maxCs !== undefined) {
+        var csPos = maxCs - csidx + 1;
+        if (csPos < 1) csPos = 1;
+        return "in the " + _gOrdinal(csPos) + " chain space";
+      }
+      return "in a chain space of the previous row";
+    }
+
+    // Granny cluster anchor: K{round}_{idx}. Render as a chain-space position
     // in the previous round, numbered in reverse: N = maxK(round) - idx + 1.
     var kMatch = t.match(/^K(\d+)_(\d+)$/);
     if (kMatch) {
@@ -509,14 +543,15 @@
       if (maxK !== undefined) {
         var pos = maxK - kidx + 1;
         if (pos < 1) pos = 1;
-        return "in the " + _gOrdinal(pos) + " chain gap of the previous row";
+        return "in the " + _gOrdinal(pos) + " chain space";
       }
       // Fall back if we somehow haven't scanned that round yet.
-      return "in a chain gap of the previous row";
+      return "in a chain space of the previous row";
     }
 
-    // Ring anchor — clusters worked into the magic loop.
-    if (/^Ring\d*$/.test(t)) return "in the magic ring";
+    // Ring anchor — clusters worked into the magic loop. The granny generator
+    // labels the ring "R"; older patterns use "Ring"/"Ring1".
+    if (/^(?:R|Ring\d*)$/.test(t)) return "in the magic ring";
 
     // Ring1[][0] etc.
     var labelMatch = t.match(/^([A-Za-z_][\w]*)(\[.*\])?$/);
@@ -564,6 +599,62 @@
   }
 
   // ---------------------------------------------------------------------------
+  // Describe a worked cluster chunk as a single imperative step, e.g.
+  //   (tr.st_2_1,...,tr.st_2_5).cl_2_1@cs_1_4  ->  "Make 5 trebles in the 1st
+  //   chain space"
+  //   (dc.st_1_1).cl_1_1@R                     ->  "Make 1 double crochet in
+  //   the magic ring"
+  // Collapses the repeated single stitches inside the group into one count and
+  // drops every internal label. The @-anchor supplies the position. Returns
+  // null if the chunk isn't a cluster we recognise (caller can skip it).
+  // ---------------------------------------------------------------------------
+  function describeCluster(chunk) {
+    chunk = chunk.trim();
+
+    // Peel a trailing @anchor at top level.
+    var anchorGloss = null;
+    var atIdx = lastTopLevel(chunk, "@");
+    if (atIdx >= 0) {
+      anchorGloss = describeAttachTarget(chunk.slice(atIdx + 1).trim());
+      chunk = chunk.slice(0, atIdx).trim();
+    }
+
+    // Peel trailing .label suffixes (the cluster label cl_R_k etc.).
+    while (true) {
+      var dotTail = chunk.match(/^(.*?)\.([A-Za-z_][\w]*(?:\[[^\]]*\])*)$/);
+      if (dotTail && dotTail[1] && depthsBalancedAt(dotTail[1])) {
+        chunk = dotTail[1].trim();
+        continue;
+      }
+      break;
+    }
+
+    // The head should now be a group of stitches, each possibly carrying its
+    // own .st_R_n label. CrochetPARADE uses both [..] and (..) for grouping
+    // (see the manual: 3*[sc,dc] and (sc,dc).A are equivalent forms), and the
+    // granny generator emits clusters with square brackets, e.g.
+    // [dc.st_1_1,dc.st_1_2].cl_1_1@R.
+    var grp = chunk.match(/^\[(.+)\]$/) || chunk.match(/^\((.+)\)$/);
+    if (!grp || !depthsBalancedAt(grp[1])) return null;
+
+    var inner = splitTopLevel(grp[1], ",");
+    var count = 0;
+    var stitchName = null;
+    for (var a = 0; a < inner.length; a++) {
+      var tok = inner[a].trim().replace(/\.[A-Za-z_][\w]*$/, ""); // drop st label
+      var nm = lookupStitch(tok);
+      if (!nm) return null;          // unexpected token -> let caller skip
+      if (stitchName === null) stitchName = nm;
+      count++;
+    }
+    if (!count || !stitchName) return null;
+
+    var phrase = "Make " + count + " " + pluralise(stitchName, count);
+    if (anchorGloss) phrase += " " + anchorGloss;
+    return phrase;
+  }
+
+  // ---------------------------------------------------------------------------
   // Translate one source line.
   // ---------------------------------------------------------------------------
   function translateLine(line, rowIndex) {
@@ -586,51 +677,39 @@
     // then join with "then" between them.
     var chunks = splitTopLevel(trimmed, ",");
 
-    // ---- Granny setup-pair collapse --------------------------------------
-    // The generator opens every round with two chunks:  "Nch" then
-    // "ch.start{r}". Together they mean: chain N+1, the top chain being the
-    // one the closer slip-stitches into. Render them as a single readable
-    // instruction and drop the internal label.
-    var setupGloss = null;
-    if (chunks.length >= 2) {
-      var c0 = chunks[0].trim();
-      var c1 = chunks[1].trim();
-      var m0 = c0.match(/^(\d+)ch$/);
-      var m1 = c1.match(/^ch\.st_\d+_1$/);
-      if (m0 && m1) {
-        var total = parseInt(m0[1], 10) + 1;
-        setupGloss = "to start make " + total + " chain stitches (the top " +
-          "one will be used to close this round)";
-        chunks = chunks.slice(2);
-      }
+    // ---- Row-1 special case: the magic loop -------------------------------
+    // Round 0 is the lone `ring.Ring` chunk. Emit it as a one-line bold row
+    // with no bullets.
+    if (chunks.length === 1 && /^ring(?:\.[A-Za-z_][\w]*)?$/i.test(chunks[0].trim())) {
+      return { kind: "row", header: "", steps: ["Make a magic loop."], flip: false };
     }
 
     // ---- Consecutive-chain merge -----------------------------------------
-    // Collapse runs of adjacent plain chain chunks ("2ch", "1ch", "3ch.C1_1")
+    // Collapse runs of adjacent plain chain chunks ("2ch", "1ch", "3ch.cs_1_1")
     // into one chunk by summing their counts, so the reader sees "6 chains"
-    // instead of "2 chains, then 1 chain, then 3 chains". A label on any
-    // chunk in the run is preserved (attached to the merged chunk); if more
-    // than one chunk is labelled we keep them all. The setup chain is already
-    // removed above, so it is never merged into the body. Anything that isn't
-    // a bare/labelled chain (clusters, gaps-with-@, ss, turn) breaks the run.
+    // instead of "2 chains, then 1 chain, then 3 chains". This also folds the
+    // turning chain labelled 'x' into the opening chain count (e.g. row 2's
+    // "2ch, 1ch.x" -> "3 chains"). A label on any chunk in the run is kept on
+    // the merged chunk (the internal cs_/cl_/st_/x labels are hidden
+    // downstream anyway). Anything that isn't a bare/labelled chain (clusters,
+    // spaces-with-@, ss, turn) breaks the run.
     var merged = [];
     var i = 0;
+    var CHAIN_RE = /^(\d+)?ch(?:\.([A-Za-z_][\w]*))?(?:[+!]+\d*[+!]*)?$/;
     while (i < chunks.length) {
       var ch = chunks[i].trim();
-      var cm = ch.match(/^(\d+)ch(?:\.([A-Za-z_][\w]*))?$/);
+      var cm = ch.match(CHAIN_RE);
       if (cm) {
-        var sum = parseInt(cm[1], 10);
+        var sum = cm[1] ? parseInt(cm[1], 10) : 1;
         var runLabels = cm[2] ? [cm[2]] : [];
         var j = i + 1;
         while (j < chunks.length) {
-          var nx = chunks[j].trim().match(/^(\d+)ch(?:\.([A-Za-z_][\w]*))?$/);
+          var nx = chunks[j].trim().match(CHAIN_RE);
           if (!nx) break;
-          sum += parseInt(nx[1], 10);
+          sum += nx[1] ? parseInt(nx[1], 10) : 1;
           if (nx[2]) runLabels.push(nx[2]);
           j++;
         }
-        // Rebuild a single chain chunk. Keep meaningful labels (the K-labels
-        // are hidden downstream anyway); if several survive, chain them on.
         var rebuilt = sum + "ch";
         runLabels.forEach(function (l) { rebuilt += "." + l; });
         merged.push(rebuilt);
@@ -642,16 +721,64 @@
     }
     chunks = merged;
 
-    var parts = chunks.map(translateChunk).filter(Boolean);
-    if (setupGloss) parts.unshift(setupGloss);
-    if (!parts.length) {
-      return { kind: "row", text: "(empty row)" };
+    // ---- Build the structured row -----------------------------------------
+    // The opening chunk (after merging) is the row's turning/opening chain.
+    // It becomes the bold header: "Make N chains." Everything after is a
+    // sequence of steps. We group each cluster with the chain run that
+    // follows it into a single bullet: "Make 5 trebles in the 1st chain
+    // space, then 3 chains." A trailing slip-stitch closer becomes its own
+    // bullet. Internal labels never appear; the @-anchor supplies the chain-
+    // space position. The opening turning/foundation chain becomes the FIRST
+    // step (a bullet), not part of the bold "Row N:" header.
+    var steps = [];
+    var startIdx = 0;
+    var openMatch = chunks.length ? chunks[0].trim().match(/^(\d+)ch(?:\.[A-Za-z_][\w]*)?$/) : null;
+    if (openMatch) {
+      var openCount = parseInt(openMatch[1], 10);
+      steps.push("Make " + openCount + " " + pluralise("chain", openCount) + ".");
+      startIdx = 1;
     }
 
-    var prefix = (rowIndex !== null && rowIndex !== undefined)
-      ? "Row " + rowIndex + ": "
-      : "";
-    return { kind: "row", text: prefix + cap(parts.join(", then ")) + "." };
+    // Walk the remaining chunks, pairing each worked cluster with the chains
+    // that immediately follow it into one bullet.
+    var k = startIdx;
+    while (k < chunks.length) {
+      var raw = chunks[k].trim();
+
+      // Closer: slip stitch (+ its anchor). Always the final step.
+      if (/^ss(\b|@|\.)/.test(raw) || raw === "ss") {
+        steps.push("Slip stitch into the first stitch, then turn the piece.");
+        k++;
+        if (k < chunks.length && chunks[k].trim() === "turn") k++;
+        continue;
+      }
+      if (raw === "turn") { k++; continue; }
+
+      // A worked cluster. Describe it as "Make N <stitch>" and capture its
+      // chain-space anchor, then absorb the chains that follow it.
+      var cluster = describeCluster(chunks[k]);
+      k++;
+      var tail = [];
+      while (k < chunks.length) {
+        var follow = chunks[k].trim().match(/^(\d+)ch(?:\.[A-Za-z_][\w]*)?$/);
+        if (!follow) break;
+        tail.push(parseInt(follow[1], 10));
+        k++;
+      }
+      if (!cluster) continue;
+      var sentence = cluster;
+      if (tail.length) {
+        var chTotal = tail.reduce(function (a, b) { return a + b; }, 0);
+        sentence += ", then " + chTotal + " " + pluralise("chain", chTotal);
+      }
+      steps.push(sentence + ".");
+    }
+
+    if (!steps.length) {
+      return { kind: "row", header: "(empty row)", steps: [], flip: false };
+    }
+
+    return { kind: "row", header: "", steps: steps, flip: false };
   }
 
   // ---------------------------------------------------------------------------
@@ -694,14 +821,26 @@
           else out.push(""); // preserve line alignment for DOT: lines we skipped
         } else {
           rowCounter++;
-          // Re-translate now that we know the row index, for the row prefix
-          var withIdx;
-          try {
-            withIdx = translateLine(lines[i], rowCounter);
-          } catch (e2) {
-            withIdx = { text: "<error: " + lines[i] + ">" };
+          // res is { kind:'row', header, steps, flip }. The flip note applies
+          // from row 3 onward (every row after the first worked round turns
+          // the piece, reversing the working direction).
+          var flip = rowCounter >= 3;
+          // The header is just "Row N:" now — the opening chain moved into the
+          // step list. Append the body only if a row ever carries one (the
+          // magic-loop row keeps its text in the header).
+          var headerText = "Row " + rowCounter + ":";
+          if (res.header) headerText += " " + res.header;
+          if (flip) {
+            headerText += " @@I@@(The piece is flipped, so you now work in " +
+              "the opposite direction of the previous row.)@@/I@@";
           }
-          out.push(withIdx.text);
+          // Marker protocol consumed by main.js renderer:
+          //   @@ROW@@  -> bold header line
+          //   @@STEP@@ -> indented bullet
+          out.push("@@ROW@@" + headerText);
+          (res.steps || []).forEach(function (st) {
+            out.push("@@STEP@@" + st);
+          });
         }
       }
       return out.join("\n");

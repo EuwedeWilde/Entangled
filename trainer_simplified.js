@@ -191,7 +191,7 @@
     $progressLabel.textContent = "Starting…";
     setStatus("busy", "training…");
     $trainBtn.disabled = true;
-    $trainHint.textContent = "Training in progress — please wait.";
+    $trainHint.textContent = "Training in progress, please wait...";
     $trainHint.className = "easy__hint";
     $generateBtn.disabled = true;
     $generateHint.textContent = "Training… generate when it finishes.";

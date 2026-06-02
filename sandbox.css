@@ -83,7 +83,23 @@
 }
 
 .translation__row {
-  margin-bottom: 0.35rem;
+  display: block;
+  font-weight: 700;
+  margin-top: 0.6rem;
+  margin-bottom: 0.2rem;
+}
+
+.translation__step {
+  display: block;
+  color: var(--ink);
+}
+
+/* The "piece is flipped…" note sits inside the bold row header but reads as
+   an aside, so render it italic and at normal weight. */
+.translation__note {
+  font-style: italic;
+  font-weight: 400;
+  color: var(--ink-soft);
 }
 
 .translation__placeholder {

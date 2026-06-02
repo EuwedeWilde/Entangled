@@ -275,15 +275,48 @@ var Module = {
     }
 
     var rowCount = 0;
+    // Append `text` to `span`, converting any @@I@@…@@/I@@ segments into
+    // italic child spans. Used for row headers, which may carry the italic
+    // flip note. Plain segments are added as text nodes so nothing is HTML-
+    // interpreted.
+    function appendWithItalics(span, text) {
+      var parts = text.split(/@@I@@|@@\/I@@/);
+      // Even indices are plain, odd indices were between the markers (italic).
+      parts.forEach(function (seg, segIdx) {
+        if (seg === "") return;
+        if (segIdx % 2 === 1) {
+          var em = document.createElement("span");
+          em.className = "translation__note";
+          em.textContent = seg;
+          span.appendChild(em);
+        } else {
+          span.appendChild(document.createTextNode(seg));
+        }
+      });
+    }
+
     lines.forEach(function (line, idx) {
       var span = document.createElement("span");
-      if (line.startsWith("#")) {
-        span.className = "translation__comment";
-      } else if (line.startsWith("Row ")) {
+      var text = line;
+      if (line.indexOf("@@ROW@@") === 0) {
+        // Bold row header (may contain an italic flip-note segment).
+        text = line.slice("@@ROW@@".length);
         span.className = "translation__row";
         rowCount++;
+        appendWithItalics(span, text);
+        $translation.appendChild(span);
+        if (idx < lines.length - 1) {
+          $translation.appendChild(document.createTextNode("\n"));
+        }
+        return;
+      } else if (line.indexOf("@@STEP@@") === 0) {
+        // Indented bullet step under a row.
+        text = "    \u2022 " + line.slice("@@STEP@@".length);
+        span.className = "translation__step";
+      } else if (line.startsWith("#")) {
+        span.className = "translation__comment";
       }
-      span.textContent = line;
+      span.textContent = text;
       $translation.appendChild(span);
       if (idx < lines.length - 1) {
         $translation.appendChild(document.createTextNode("\n"));
