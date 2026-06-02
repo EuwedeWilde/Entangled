@@ -6,7 +6,8 @@
   <title>Entangled - Crochet Sandbox</title>
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <link rel="stylesheet" href="./style.css">
-  <link rel="icon" type="image/svg+xml" href="../assets/fav_icon.svg">
+  <link rel="stylesheet" href="./sandbox.css">
+  <link rel="icon" type="image/svg+xml" href="./assets/fav_icon.svg">
 </head>
 
 <body>
@@ -23,6 +24,7 @@
       <span class="brand__tag">Crochet Sandbox</span>
     </div>
     <div class="controls">
+      <a class="controls__link" href="./train_simplified.html" title="RL pattern trainer">Trainer →</a>
       <span class="controls__status">
         <span class="controls__dot" id="status-dot"></span>
         <span id="status-text">idle</span>
@@ -32,13 +34,22 @@
   </header>
 
   <main class="workspace">
-    <section class="pane">
-      <div class="pane__header">
-        <span class="pane__label"><span class="pane__marker"></span>Pattern</span>
-        <span class="pane__counter" id="char-count">0 chars</span>
+    <section class="pane pane--split">
+      <div class="pane__half">
+        <div class="pane__header">
+          <span class="pane__label"><span class="pane__marker"></span>Pattern</span>
+          <span class="pane__counter" id="char-count">0 chars</span>
+        </div>
+        <textarea class="editor" id="editor" spellcheck="false" autocomplete="off"
+          placeholder="Type CrochetPARADE instructions here…"></textarea>
       </div>
-      <textarea class="editor" id="editor" spellcheck="false" autocomplete="off"
-        placeholder="Type CrochetPARADE instructions here…"></textarea>
+      <div class="pane__half pane__half--translation">
+        <div class="pane__header">
+          <span class="pane__label"><span class="pane__marker"></span>Plain English</span>
+          <span class="pane__counter" id="translation-count">0 rows</span>
+        </div>
+        <pre class="translation" id="translation" aria-readonly="true"></pre>
+      </div>
     </section>
 
     <section class="pane">
@@ -57,6 +68,20 @@
   <script src="./simplify64.js"></script>
   <script src="./parse64.js"></script>
   <script src="./svg.min.js"></script>
+
+  <!-- html2canvas: client-side screenshot for the feedback button. Loaded
+       from a CDN; the feedback button falls back to a no-image submission
+       if the script fails to load (e.g. offline). -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+  <!-- Plain-English translator for the left bottom pane. Loaded before
+       main.js so the sandbox can call window.translatePattern() as part of
+       its compile pipeline. -->
+  <script src="./translator.js"></script>
+
+  <!-- Feedback button glue. Reads the editor + status, calls html2canvas,
+       POSTs to the local feedback endpoint. -->
+  <!-- <script src="./feedback.js"></script> -->
 
   <!-- entry point: parser-warning suppression, Module config, sandbox glue.
        MUST load before graph64.js so the Module config exists when the

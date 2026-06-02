@@ -1,0 +1,498 @@
+/* ===========================================================================
+   train.css — styles for the RL pattern trainer page.
+
+   Reuses tokens from style.css (--paper, --ink, --accent, etc.) and the
+   existing block names (.header, .brand, .controls, .pane__*, .editor) so
+   the page feels like a sibling of the sandbox rather than a stranger.
+   =========================================================================== */
+
+/* WebSocket URL input in the header — small, monospace, unobtrusive. */
+.controls__ws {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.controls__ws-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.controls__ws-input {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  color: var(--ink);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--paper-edge);
+  padding: 2px 4px;
+  width: 160px;
+  outline: none;
+}
+
+.controls__ws-input:focus {
+  border-bottom-color: var(--accent);
+}
+
+/* The trainer layout is a three-pane grid (config | progress | generate),
+   each pane scrolls independently. Below the workspace breakpoint the panes
+   stack vertically. */
+.trainer {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(320px, 380px) minmax(420px, 1fr) minmax(360px, 460px);
+  height: calc(100% - 53px);
+}
+
+.trainer__pane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.trainer__pane + .trainer__pane {
+  border-left: 1px solid var(--rule);
+}
+
+/* ===========================================================================
+   Block: config (left pane content)
+   =========================================================================== */
+.config {
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  font-size: 13px;
+}
+
+.config__group {
+  margin-bottom: 1.5rem;
+}
+
+.config__label {
+  display: block;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+  margin-bottom: 0.5rem;
+}
+
+.config__hint {
+  display: block;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--ink-soft);
+  font-weight: normal;
+  margin-top: 0.35rem;
+  line-height: 1.45;
+}
+
+.config__row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.config__range {
+  flex: 1;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 2px;
+  background: var(--paper-edge);
+  outline: none;
+  margin: 0;
+}
+
+.config__range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.config__range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid var(--paper);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+
+.config__value {
+  font-family: "Space Mono", monospace;
+  font-size: 13px;
+  color: var(--ink);
+  min-width: 3.2em;
+  text-align: right;
+}
+
+.config__stitches {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px 12px;
+  border: 1px solid var(--paper-edge);
+  padding: 0.75rem;
+}
+
+.config__stitch {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.config__stitch input {
+  accent-color: var(--accent);
+  cursor: pointer;
+  margin: 0;
+}
+
+.config__stitch code {
+  font-size: 10px;
+  color: var(--ink-soft);
+}
+
+.config__select {
+  width: 100%;
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--ink);
+  padding: 6px 8px;
+  cursor: pointer;
+}
+
+.config__advanced {
+  border-top: 1px solid var(--paper-edge);
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.config__advanced > summary {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+  cursor: pointer;
+  padding: 4px 0;
+  list-style: none;
+}
+
+.config__advanced > summary::before {
+  content: "+ ";
+  color: var(--accent);
+}
+
+.config__advanced[open] > summary::before {
+  content: "− ";
+}
+
+.config__rewards {
+  border: 1px solid var(--paper-edge);
+  padding: 0.75rem;
+  margin: 0.5rem 0 1rem;
+}
+
+.config__advanced-note {
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0.5rem 0 0.75rem;
+}
+
+.config__rewards legend {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-soft);
+  padding: 0 0.5rem;
+}
+
+.config__rewards-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+
+.config__rewards-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.config__rewards-row input {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  color: var(--ink);
+  background: transparent;
+  border: 1px solid var(--paper-edge);
+  padding: 4px 6px;
+  width: 100%;
+}
+
+.config__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 1rem;
+}
+
+.config__actions .controls__button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.config__actions .controls__button:disabled:hover {
+  background: transparent;
+  color: var(--ink);
+}
+
+/* ===========================================================================
+   Block: progress (centre pane content)
+   =========================================================================== */
+.progress {
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.progress__bar {
+  width: 100%;
+  height: 6px;
+  background: var(--paper-edge);
+  position: relative;
+  overflow: hidden;
+}
+
+.progress__bar-fill {
+  position: absolute;
+  inset: 0 100% 0 0;
+  background: var(--accent);
+  transition: right 0.1s linear;
+}
+
+.progress__stats {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+}
+
+.progress__stat {
+  border-left: 2px solid var(--paper-edge);
+  padding: 0.25rem 0 0.25rem 0.75rem;
+}
+
+.progress__stat-label {
+  display: block;
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-soft);
+  margin-bottom: 0.25rem;
+}
+
+.progress__stat-value {
+  display: block;
+  font-family: "Merriweather", serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+.progress__chart {
+  border: 1px solid var(--paper-edge);
+  padding: 0.5rem;
+  background: var(--paper);
+}
+
+.progress__chart canvas {
+  display: block;
+  width: 100%;
+  height: 180px;
+}
+
+.progress__best {
+  border-top: 1px solid var(--paper-edge);
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.progress__best-header {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-soft);
+}
+
+.progress__best-text {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px dashed var(--paper-edge);
+  padding: 0.75rem 1rem;
+  margin: 0;
+  max-height: 200px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.progress__best-actions {
+  display: flex;
+  gap: 8px;
+}
+
+/* ===========================================================================
+   Block: generate (right pane content)
+   =========================================================================== */
+.generate {
+  padding: 1.25rem 1.5rem;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.generate__label {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink);
+}
+
+.generate__editor {
+  flex: 0 0 200px;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--paper-edge);
+  background: var(--paper);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
+.generate__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.generate__hint {
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.generate__output {
+  border-top: 1px solid var(--paper-edge);
+  padding-top: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 1;
+  min-height: 0;
+}
+
+.generate__output-header {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-soft);
+}
+
+.generate__output-text {
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px dashed var(--paper-edge);
+  padding: 0.75rem 1rem;
+  margin: 0;
+  flex: 1;
+  min-height: 100px;
+  overflow: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+
+.generate__output-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.controls__button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.controls__button:disabled:hover {
+  background: transparent;
+  color: var(--ink);
+}
+
+/* ===========================================================================
+   Responsive: stack panes below ~1100px
+   =========================================================================== */
+@media (max-width: 1100px) {
+  .trainer {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto auto auto;
+    height: auto;
+    min-height: calc(100% - 53px);
+  }
+
+  .trainer__pane + .trainer__pane {
+    border-left: none;
+    border-top: 1px solid var(--rule);
+  }
+
+  .progress__stats {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  body {
+    overflow: auto;
+  }
+}

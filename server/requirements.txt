@@ -1,0 +1,12 @@
+# Python dependencies for the crochet RL trainer.
+# Install with: pip install -r server/requirements.txt
+#
+# Note: server/feedback_server.py uses only the Python standard library, so
+# the camera-button feedback endpoint can run on a fresh Python install
+# without any of the packages below. The packages here are only needed to
+# launch the full PPO training pipeline (server/train_server.py).
+stable-baselines3>=2.0.0
+torch>=2.0.0
+websockets>=11.0
+gymnasium>=0.29.0
+numpy>=1.24.0

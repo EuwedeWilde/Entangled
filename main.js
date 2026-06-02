@@ -218,8 +218,22 @@ var Module = {
   var $charCount = document.getElementById("char-count");
   var $splash = document.getElementById("splash");
   var $download = document.getElementById("download-btn");
+  var $translation = document.getElementById("translation");
+  var $translationCount = document.getElementById("translation-count");
 
   $editor.value = DEFAULT_PATTERN;
+
+  // Cross-page handoff: if the trainer page stashed a pattern under
+  // `entangled.handoff` before opening the sandbox, swap it in here and
+  // clear the slot so a manual reload of the sandbox doesn't keep
+  // resurrecting the trainer's pattern.
+  try {
+    var handoff = sessionStorage.getItem("entangled.handoff");
+    if (handoff && handoff.length > 0) {
+      $editor.value = handoff;
+      sessionStorage.removeItem("entangled.handoff");
+    }
+  } catch (_) { /* private mode etc. — fine, fall back to DEFAULT_PATTERN */ }
 
   function setStatus(state, text) {
     $statusDot.className =
@@ -232,6 +246,51 @@ var Module = {
   }
   function clearError() {
     $errBox.classList.remove("error--visible");
+  }
+
+  // -------------------------------------------------------------------------
+  // Plain-English translation. Rendered into the bottom-left pane on every
+  // keystroke (independent of the parse cycle, so the user still sees a
+  // gloss when the parser is mid-rejection). Uses light DOM nodes — one
+  // <span> per source line — so we can colour comments differently from
+  // translated rows.
+  // -------------------------------------------------------------------------
+  function updateTranslation() {
+    if (!$translation || typeof window.translatePattern !== "function") return;
+    var text = $editor.value || "";
+    var translated = window.translatePattern(text);
+    var lines = translated.split("\n");
+
+    // Wipe + rebuild. We're rendering tens of lines at most — no need for
+    // anything more clever than innerHTML with the right escaping.
+    $translation.textContent = "";
+
+    if (!text.trim()) {
+      var ph = document.createElement("span");
+      ph.className = "translation__placeholder";
+      ph.textContent = "Translation will appear here as you type.";
+      $translation.appendChild(ph);
+      $translationCount.textContent = "0 rows";
+      return;
+    }
+
+    var rowCount = 0;
+    lines.forEach(function (line, idx) {
+      var span = document.createElement("span");
+      if (line.startsWith("#")) {
+        span.className = "translation__comment";
+      } else if (line.startsWith("Row ")) {
+        span.className = "translation__row";
+        rowCount++;
+      }
+      span.textContent = line;
+      $translation.appendChild(span);
+      if (idx < lines.length - 1) {
+        $translation.appendChild(document.createTextNode("\n"));
+      }
+    });
+    $translationCount.textContent =
+      rowCount + " row" + (rowCount === 1 ? "" : "s");
   }
 
   function whenLayoutReady(cb) {
@@ -402,9 +461,25 @@ var Module = {
     );
   }
 
-  // ---------------------------------------------------------------------------
-  // Drawing helpers — adapted from mesh64.js, 2D only.
-  // ---------------------------------------------------------------------------
+  // Lengthen the short diagonal tick segments (M start ... L end) that
+  // distinguish dc/tr/dtr. Each tick is extended outward from its M start by
+  // `factor` (1 = unchanged, 1.5 = 50% longer). Only pure straight M..L
+  // subpaths are affected; posts (V), curves (C) and arcs (A) are untouched.
+  function lengthenTicks(pathData, factor) {
+    if (!factor || factor === 1) return pathData;
+    return pathData.replace(
+      /M\s*([-\d.eE]+)[,\s]+([-\d.eE]+)\s*L\s*([-\d.eE]+)[,\s]+([-\d.eE]+)/g,
+      function (match, mx, my, lx, ly) {
+        var sx = parseFloat(mx),
+          sy = parseFloat(my),
+          ex = parseFloat(lx),
+          ey = parseFloat(ly);
+        var nx = sx + (ex - sx) * factor;
+        var ny = sy + (ey - sy) * factor;
+        return "M" + sx + "," + sy + "L" + nx + "," + ny;
+      },
+    );
+  }
   function drawSymbolAlongEdge(
     draw,
     start,
@@ -439,6 +514,18 @@ var Module = {
       if (["fpsc", "bpsc"].indexOf(nodeId) !== -1) scaleY *= 1.2;
     }
     var scaleX = isChain ? scaleY : 1;
+    // Stitches whose identity depends on short diagonal ticks (dc/tr/dtr) or a
+    // short horizontal top bar (sc family) keep scaleX=1 in the original,
+    // leaving that detail at its native ~5-unit width while the post is
+    // stretched tall — so it becomes microscopic. Scale these in X too (a
+    // fraction of scaleY) so the detail grows with the post and stays readable.
+    var hasTicks =
+      /M[^MZ]*L/.test(symbolPath) &&
+      !/[ABCSQT]/.test((symbolPath.match(/M[^MZ]*L[^MZ]*/g) || []).join(" "));
+    var hasHBar = /[Hh]/.test(symbolPath);
+    if ((hasTicks || hasHBar) && !isChain) {
+      scaleX = scaleY * 0.7;
+    }
     if (
       [
         "hdc3puff",
@@ -464,7 +551,8 @@ var Module = {
     var symbol = draw
       .path(centeredPath)
       .fill(fill)
-      .stroke({ color: color, width: 2 });
+      .stroke({ color: color, width: 2 })
+      .attr("vector-effect", "non-scaling-stroke");
     if (nodeId === "line" || comesFromLine) {
       scaleY /= 0.9;
       scaleX = scaleY;
@@ -473,7 +561,11 @@ var Module = {
       scaleY *= 0.95;
       scaleX *= 0.95;
     }
-    var scaledPath = scalePathData(centeredPath, scaleX, scaleY);
+    var scaledPath = scalePathData(
+      lengthenTicks(centeredPath, 1.0),
+      scaleX,
+      scaleY,
+    );
     symbol.plot(scaledPath);
 
     var centerX, centerY;
@@ -502,8 +594,8 @@ var Module = {
       translateX: centerX,
       translateY: centerY,
       rotate: ((angle + Math.PI / 2) * 180) / Math.PI,
-      originX: "center",
-      originY: "center",
+      originX: 0,
+      originY: 0,
     });
   }
 
@@ -560,7 +652,8 @@ var Module = {
     var symbol = draw
       .path(centeredPath)
       .fill("none")
-      .stroke({ color: color, width: 2 });
+      .stroke({ color: color, width: 2 })
+      .attr("vector-effect", "non-scaling-stroke");
     var scaledPath = scalePathData(centeredPath, scaleX, scaleY);
     symbol.plot(scaledPath);
 
@@ -621,7 +714,10 @@ var Module = {
       y2 = y0 + (dy / 2) * 0.8;
     }
 
-    draw.line(x1, y1, x2, y2).stroke({ color: lineColor, width: lineWidth });
+    draw
+      .line(x1, y1, x2, y2)
+      .stroke({ color: lineColor, width: lineWidth })
+      .attr("vector-effect", "non-scaling-stroke");
   }
 
   // ---------------------------------------------------------------------------
@@ -955,7 +1051,12 @@ var Module = {
     if (debounceTimer) clearTimeout(debounceTimer);
     debounceTimer = setTimeout(compile, 250);
   }
-  $editor.addEventListener("input", scheduleCompile);
+  $editor.addEventListener("input", function () {
+    // Run the cheap translation on every keystroke, even before the parser
+    // re-runs — gives instant feedback as the user types.
+    updateTranslation();
+    scheduleCompile();
+  });
 
   // ---------------------------------------------------------------------------
   // Download SVG
@@ -987,6 +1088,7 @@ var Module = {
     setTimeout(function () {
       $splash.style.display = "none";
     }, 500);
+    updateTranslation();
     compile();
   });
 })();

@@ -1,9 +1,23 @@
+/* ===========================================================================
+   style.css — shared styles loaded by both index.html (sandbox) and
+   train.html (trainer).
+
+   Contains: design tokens, fonts, reset, and the blocks that appear on
+   every page: .header, .brand, .controls, .splash, plus the pane-header
+   scaffolding (.pane__header, .pane__marker, .pane__label, .pane__counter)
+   that both pages reuse.
+
+   Sandbox-only layout (workspace grid, editor textarea, translation pane,
+   SVG canvas, error toast) lives in sandbox.css.
+   Trainer-only layout lives in train.css.
+   =========================================================================== */
+
 @font-face {
   font-family: "Merriweather";
   font-style: normal;
   font-weight: 700;
   font-display: swap;
-  src: url("../assets/fonts/Merriweather.ttf") format("truetype");
+  src: url("./fonts/Merriweather.ttf") format("truetype");
 }
 
 @font-face {
@@ -11,7 +25,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("../assets/fonts/Montserrat.ttf") format("truetype");
+  src: url("./fonts/Montserrat.ttf") format("truetype");
 }
 
 @font-face {
@@ -19,7 +33,7 @@
   font-style: normal;
   font-weight: 400;
   font-display: swap;
-  src: url("../assets/fonts/SpaceMono-Regular.ttf") format("truetype");
+  src: url("./fonts/SpaceMono-Regular.ttf") format("truetype");
 }
 
 
@@ -48,25 +62,6 @@ body {
   overflow: hidden;
 }
 
-/* subtle paper texture using layered radial gradients */
-body::before {
-  content: "";
-  position: fixed;
-  inset: 0;
-  background:
-    radial-gradient(
-      circle at 20% 10%,
-      rgba(139, 29, 58, 0.04) 0,
-      transparent 40%
-    ),
-    radial-gradient(
-      circle at 85% 80%,
-      rgba(42, 90, 120, 0.03) 0,
-      transparent 45%
-    );
-  pointer-events: none;
-  z-index: 0;
-}
 
 /* ===========================================================================
    Block: header
@@ -153,6 +148,23 @@ body::before {
   color: var(--paper);
 }
 
+.controls__link {
+  font-family: inherit;
+  font-size: 12px;
+  color: var(--ink);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 5px 10px;
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.15s, color 0.15s;
+}
+
+.controls__link:hover {
+  color: var(--accent);
+  border-bottom-color: var(--accent);
+}
+
 .controls__status {
   display: inline-flex;
   align-items: center;
@@ -188,31 +200,10 @@ body::before {
 }
 
 /* ===========================================================================
-   Block: workspace (the main two-pane grid)
+   Block: pane header (shared scaffolding)
+   The pane container itself and its layout (split halves, etc.) live in the
+   per-page stylesheet. These header rules are reused by both pages.
    =========================================================================== */
-.workspace {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  grid-template-columns: minmax(320px, 1fr) 1fr;
-  height: calc(100% - 53px);
-}
-
-/* ===========================================================================
-   Block: pane
-   =========================================================================== */
-.pane {
-  position: relative;
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-  min-height: 0;
-}
-
-.pane + .pane {
-  border-left: 1px solid var(--rule);
-}
-
 .pane__header {
   font-family: "Space Mono", monospace;
   font-size: 10px;
@@ -242,85 +233,6 @@ body::before {
 
 .pane__counter {
   /* right-aligned count text in the pane header */
-}
-
-/* ===========================================================================
-   Block: editor
-   =========================================================================== */
-.editor {
-  flex: 1;
-  font-family: "Space Mono", monospace;
-  font-size: 13px;
-  line-height: 1.65;
-  padding: 1rem 2rem;
-  border: none;
-  outline: none;
-  background: transparent;
-  color: var(--ink);
-  resize: none;
-  tab-size: 4;
-  white-space: pre;
-  overflow: auto;
-}
-
-.editor::placeholder {
-  color: var(--ink-soft);
-  opacity: 0.6;
-}
-
-/* ===========================================================================
-   Block: canvas
-   =========================================================================== */
-.canvas {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  background:
-    linear-gradient(var(--paper-edge) 1px, transparent 1px) 0 0 / 28px 28px,
-    linear-gradient(90deg, var(--paper-edge) 1px, transparent 1px) 0 0 / 28px
-      28px,
-    var(--paper);
-}
-
-.canvas__host {
-  position: absolute;
-  inset: 0;
-}
-
-.canvas__host svg {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-.canvas__host svg path,
-.canvas__host svg line {
-  vector-effect: non-scaling-stroke;
-}
-
-/* ===========================================================================
-   Block: error
-   =========================================================================== */
-.error {
-  position: absolute;
-  left: 18px;
-  right: 18px;
-  bottom: 18px;
-  padding: 10px 14px;
-  background: var(--paper);
-  border-left: 3px solid var(--accent);
-  color: var(--accent);
-  font-family: "Space Mono", monospace;
-  font-size: 12px;
-  line-height: 1.5;
-  max-height: 40%;
-  overflow: auto;
-  display: none;
-  box-shadow: 0 2px 12px rgba(43, 32, 26, 0.08);
-}
-
-.error--visible {
-  display: block;
 }
 
 /* ===========================================================================

@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Entangled — Easy Pattern Trainer</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./train.css">
+  <link rel="stylesheet" href="./train_simplified.css">
+  <link rel="icon" type="image/svg+xml" href="./assets/fav_icon.svg">
+
+</head>
+
+<body>
+
+  <header class="header">
+    <div class="brand">
+      <img class="brand__logo" src="./assets/logo.svg" alt="Crochet Sandbox logo">
+      <h1 class="brand__title">Entangled</h1>
+      <span class="brand__tag">Pattern Trainer</span>
+    </div>
+    <div class="controls">
+      <a class="controls__link" href="./sandbox.html" title="Back to sandbox">← Sandbox</a>
+      <a class="controls__link" href="./train.html" title="Advanced trainer">Advanced →</a>
+      <span class="controls__status">
+        <span class="controls__dot" id="status-dot"></span>
+        <span id="status-text">connecting…</span>
+      </span>
+    </div>
+  </header>
+
+  <input type="hidden" id="ws-url" value="ws://127.0.0.1:8765">
+
+  <main class="trainer">
+
+    <section class="trainer__pane">
+      <div class="pane__header">
+        <span class="pane__label"><span class="pane__marker"></span>1 · Pattern settings</span>
+      </div>
+
+      <div class="config">
+        <p class="easy__intro">
+          Choose how big and how fancy your granny square should be, then train
+          the model in the next panel.
+        </p>
+
+        <div class="config__group">
+          <label class="config__label" for="rows">Number of rows</label>
+          <div class="config__row">
+            <input class="config__range" type="range" id="rows" min="2" max="20" value="4" step="1">
+            <output class="config__value" id="rows-val">4</output>
+          </div>
+        </div>
+
+        <div class="config__group">
+          <label class="config__label" for="stitch-menu">Stitches to include</label>
+          <p class="config__advanced-note" style="margin-top:0">Tick the stitches you want in your square. Pick as many or as few as you like.</p>
+          <div class="config__stitches" id="stitch-menu">
+            <p class="config__advanced-note" id="stitch-empty">Connect to load the stitch list.</p>
+          </div>
+        </div>
+
+        <div class="config__group">
+          <label class="config__label" for="timesteps">Training time (advanced)</label>
+          <div class="config__row">
+            <input class="config__range" type="range" id="timesteps" min="2000" max="200000" value="10000" step="1000">
+            <output class="config__value" id="timesteps-val">10000</output>
+          </div>
+          <span class="easy__locknote">
+            <strong>You don't need to change this.</strong>
+            The default works well for most patterns, only adjust it if your
+            trained patterns look random.
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <section class="trainer__pane">
+      <div class="pane__header">
+        <span class="pane__label"><span class="pane__marker"></span>2 · Train the model</span>
+      </div>
+
+      <div class="progress">
+        <p class="easy__intro">
+          This teaches the model to build your granny square. It runs once,
+          wait for the bar to fill up.
+        </p>
+
+        <div class="progress__bar easy__bar">
+          <div class="progress__bar-fill" id="progress-fill"></div>
+        </div>
+        <div class="easy__bar-meta">
+          <span id="progress-label">Not started</span>
+          <span id="progress-pct">0%</span>
+        </div>
+
+        <div class="config__actions easy__actions">
+          <button class="controls__button" id="train-btn" disabled>Train model</button>
+          <button class="controls__button" id="reset-btn" disabled>Reset model</button>
+        </div>
+        <span class="easy__hint" id="train-hint">Connecting to trainer…</span>
+      </div>
+    </section>
+
+    <section class="trainer__pane">
+      <div class="pane__header">
+        <span class="pane__label"><span class="pane__marker"></span>3 · Generate a pattern</span>
+      </div>
+
+      <div class="generate">
+        <p class="easy__intro">
+          Creates a unique granny square from the trained model. We check that
+          it actually renders and has the number of rows you set, then open it
+          in a new window.
+        </p>
+
+        <div class="generate__actions easy__actions">
+          <button class="controls__button" id="generate-btn" disabled>Generate pattern</button>
+        </div>
+        <span class="easy__hint" id="generate-hint">Train the model first.</span>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="./translator.js"></script>
+  <script src="./trainer_simplified.js"></script>
+
+</body>
+
+</html>

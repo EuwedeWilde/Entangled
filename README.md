@@ -6,6 +6,15 @@ left; see the standard crochet chart on the right, with real stitch symbols
 popcorns, etc.) — exactly the symbol library the original CrochetPARADE uses
 for its SVG export.
 
+The left pane is split: the top half is the editable pattern source, the
+bottom half is an auto-generated plain-English translation that updates as
+you type. The right pane is the chart simulator.
+
+A small camera button in the bottom-left of every page captures a screenshot
+of the current view plus context (pattern source on the sandbox, settings +
+model state on the trainer) and submits it to a local Python feedback server
+that forwards the bundle by SMTP for anonymous research collection.
+
 This is a stripped-down spin-off of
 [CrochetPARADE](https://www.crochetparade.org/) by Svetlin Tassev. The 3D
 rendering, Pyodide translator, GLTF export, periphery analyzer, manual,
@@ -21,6 +30,23 @@ positions  →  main.js (places standard crochet symbols along the edges
 
 ## Running it
 
+### One-click (Windows)
+
+Double-click `run.bat` from the project root. It will:
+
+1. Check GitHub for updates (if this is a git checkout) and let you know if
+   you're behind.
+2. Create a Python virtualenv at `.venv` if one doesn't exist.
+3. Install `server/requirements.txt` into that venv (only fully needed for
+   training — the static server and feedback endpoint use only the stdlib).
+4. Open two terminal windows: one for the static file server (port 8000)
+   and one for the feedback HTTP endpoint (port 8766).
+5. Open `http://localhost:8000/` in your browser.
+
+Close the terminal windows to stop the servers.
+
+### Manual
+
 Because `graph64.js` loads `graph64.wasm` over `fetch()`, you need to serve
 the folder over HTTP — opening `index.html` directly with `file://` won't
 work in most browsers. Any static server works, for example:
@@ -30,6 +56,38 @@ cd crochet-sandbox
 python3 -m http.server 8000
 # then open http://localhost:8000
 ```
+
+If you also want the camera button to send anything, run the feedback server
+on the side:
+
+```
+python3 server/feedback_server.py
+```
+
+It listens on `127.0.0.1:8766` and forwards submissions by SMTP. The first
+time you start it, it'll write a template `server/email_config.json` —
+edit that with real SMTP credentials before the button will succeed.
+
+## Feedback button
+
+The small camera button in the bottom-left of both pages submits an
+anonymous research bundle. It collects:
+
+- A screenshot of the current view (via html2canvas; the button itself is
+  excluded from the capture).
+- On the **sandbox** page: the current pattern source.
+- On the **trainer** page: the current settings (target rounds, difficulty,
+  timesteps, reward overrides), the training stats visible in the UI,
+  the best pattern found so far, the most recently generated pattern, and
+  the generation prefix.
+
+It does NOT collect IP, user-agent, browser fingerprint, or any identifying
+header. The Python feedback server also strips its own metadata before
+sending the email, so the message arrives from the configured noreply
+account only.
+
+See `server/feedback_server.py` for the wire format and `server/email_config.json`
+(generated on first run) for the SMTP settings.
 
 ## How to use
 

@@ -1,0 +1,172 @@
+/* ===========================================================================
+   sandbox.css — styles for the live-editor sandbox page (index.html).
+
+   Reuses tokens, fonts, header, brand, controls, splash, and pane-header
+   scaffolding from style.css. Only the sandbox-specific layout lives here:
+   the two-pane workspace grid, the split left pane (editor + plain-English
+   translation), the SVG canvas on the right, and the inline error toast.
+
+   Trainer-only layout lives in train.css.
+   =========================================================================== */
+
+
+/* ===========================================================================
+   Block: workspace (the main two-pane grid)
+   =========================================================================== */
+.workspace {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(320px, 1fr) 1fr;
+  height: calc(100% - 53px);
+}
+
+/* ===========================================================================
+   Block: pane
+   =========================================================================== */
+.pane {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.pane + .pane {
+  border-left: 1px solid var(--rule);
+}
+
+/* The left pane in the sandbox is split horizontally: editor on top,
+   plain-English translation on the bottom. */
+.pane--split {
+  display: flex;
+  flex-direction: column;
+}
+
+.pane__half {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 50%;
+  overflow: hidden;
+}
+
+.pane__half + .pane__half {
+  border-top: 1px solid var(--rule);
+}
+
+.pane__half--translation {
+  background: var(--paper);
+}
+
+/* Read-only translation surface. Same monospace feel as the editor so the
+   reader's eye flows naturally between the two, but slightly softer text
+   colour to signal "this is derived, not editable". */
+.translation {
+  flex: 1;
+  margin: 0;
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  line-height: 1.65;
+  padding: 1rem 2rem;
+  color: var(--ink);
+  background: transparent;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  overflow: auto;
+  min-height: 0;
+}
+
+.translation__comment {
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.translation__row {
+  margin-bottom: 0.35rem;
+}
+
+.translation__placeholder {
+  color: var(--ink-soft);
+  opacity: 0.6;
+  font-style: italic;
+}
+
+/* ===========================================================================
+   Block: editor
+   =========================================================================== */
+.editor {
+  flex: 1;
+  font-family: "Space Mono", monospace;
+  font-size: 13px;
+  line-height: 1.65;
+  padding: 1rem 2rem;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: var(--ink);
+  resize: none;
+  tab-size: 4;
+  white-space: pre;
+  overflow: auto;
+}
+
+.editor::placeholder {
+  color: var(--ink-soft);
+  opacity: 0.6;
+}
+
+/* ===========================================================================
+   Block: canvas
+   =========================================================================== */
+.canvas {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background:
+    linear-gradient(var(--paper-edge) 1px, transparent 1px) 0 0 / 28px 28px,
+    linear-gradient(90deg, var(--paper-edge) 1px, transparent 1px) 0 0 / 28px
+      28px,
+    var(--paper);
+}
+
+.canvas__host {
+  position: absolute;
+  inset: 0;
+}
+
+.canvas__host svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.canvas__host svg path,
+.canvas__host svg line {
+  vector-effect: non-scaling-stroke;
+}
+
+/* ===========================================================================
+   Block: error
+   =========================================================================== */
+.error {
+  position: absolute;
+  left: 18px;
+  right: 18px;
+  bottom: 18px;
+  padding: 10px 14px;
+  background: var(--paper);
+  border-left: 3px solid var(--accent);
+  color: var(--accent);
+  font-family: "Space Mono", monospace;
+  font-size: 12px;
+  line-height: 1.5;
+  max-height: 40%;
+  overflow: auto;
+  display: none;
+  box-shadow: 0 2px 12px rgba(43, 32, 26, 0.08);
+}
+
+.error--visible {
+  display: block;
+}
