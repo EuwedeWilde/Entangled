@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>Entangled - Pattern Trainer</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <link rel="stylesheet" href="./style.css">
+  <link rel="stylesheet" href="./train.css">
+  <link rel="icon" type="image/svg+xml" href="./assets/fav_icon.svg">
+</head>
+
+<body>
+
+  <header class="header">
+    <div class="brand">
+      <img class="brand__logo" src="./assets/logo.svg" alt="Crochet Sandbox logo">
+      <h1 class="brand__title">Entangled</h1>
+      <span class="brand__tag">Advanced Pattern Trainer</span>
+    </div>
+    <div class="controls">
+      <a class="controls__link" href="./sandbox.html" title="Back to sandbox">← Sandbox</a>
+      <label class="controls__ws">
+        <span class="controls__ws-label">ws</span>
+        <input class="controls__ws-input" id="ws-url" value="ws://127.0.0.1:8765"
+               spellcheck="false" autocomplete="off">
+      </label>
+      <button class="controls__button" id="connect-btn">Connect</button>
+      <span class="controls__status">
+        <span class="controls__dot" id="status-dot"></span>
+        <span id="status-text">disconnected</span>
+      </span>
+    </div>
+  </header>
+
+  <main class="trainer">
+
+    <section class="trainer__pane trainer__pane--config">
+      <div class="pane__header">
+        <span class="pane__label"><span class="pane__marker"></span>Configure model</span>
+        <span class="pane__counter" id="vocab-count">0 actions</span>
+      </div>
+
+      <div class="config">
+        <div class="config__group">
+          <label class="config__label" for="target-rounds">
+            Target rounds
+            <span class="config__hint">How many rounds the pattern should aim for. Used by your rules.score() to reward hitting the target.</span>
+          </label>
+          <div class="config__row">
+            <input class="config__range" type="range" id="target-rounds" min="2" max="20" value="4" step="1">
+            <output class="config__value" id="target-rounds-val">4</output>
+          </div>
+        </div>
+
+        <div class="config__group">
+          <label class="config__label" for="stitch-menu">
+            Stitches to include
+            <span class="config__hint">Tick the stitch types the agent is allowed to use. The list is built from <code>rules.STITCH_MENU</code> in rules.py. At least one must be selected.</span>
+          </label>
+          <div class="config__stitches" id="stitch-menu">
+            <p class="config__advanced-note" id="stitch-empty">Connect to the trainer to load the stitch list.</p>
+          </div>
+        </div>
+
+        <div class="config__group">
+          <label class="config__label" for="episodes">
+            Training timesteps
+            <span class="config__hint">PPO learns over environment steps. ~10,000–50,000 is a reasonable start for token-level generation. Token-by-token training is slower than procedural training — give it more steps if the patterns look random.</span>
+          </label>
+          <div class="config__row">
+            <input class="config__range" type="range" id="episodes" min="2000" max="200000" value="10000" step="1000">
+            <output class="config__value" id="episodes-val">10000</output>
+          </div>
+        </div>
+
+        <details class="config__advanced">
+          <summary>Reward weights</summary>
+          <p class="config__advanced-note">
+            These match the keys in <code>rules.REWARDS</code>. Edit them here
+            to override the defaults for a single run, or change the values
+            in <code>rules.py</code> for permanent changes. The list updates
+            automatically when you add or remove keys in <code>rules.py</code>.
+          </p>
+          <div class="config__rewards" id="rw-fields">
+            <p class="config__advanced-note" id="rw-empty">Connect to the trainer to load reward fields.</p>
+          </div>
+        </details>
+
+        <div class="config__actions">
+          <button class="controls__button" id="start-btn">Start training</button>
+          <button class="controls__button" id="pause-btn" disabled>Pause</button>
+          <button class="controls__button" id="reset-btn">Reset model</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="trainer__pane trainer__pane--progress">
+      <div class="pane__header">
+        <span class="pane__label"><span class="pane__marker"></span>Training</span>
+        <span class="pane__counter" id="ep-counter">step 0 / 0</span>
+      </div>
+
+      <div class="progress">
+        <div class="progress__bar">
+          <div class="progress__bar-fill" id="progress-fill"></div>
+        </div>
+
+        <div class="progress__stats">
+          <div class="progress__stat">
+            <span class="progress__stat-label">Avg reward (last 50)</span>
+            <span class="progress__stat-value" id="stat-avg">—</span>
+          </div>
+          <div class="progress__stat">
+            <span class="progress__stat-label">Best reward</span>
+            <span class="progress__stat-value" id="stat-best">—</span>
+          </div>
+          <div class="progress__stat">
+            <span class="progress__stat-label">Episodes</span>
+            <span class="progress__stat-value" id="stat-valid">—</span>
+          </div>
+          <div class="progress__stat">
+            <span class="progress__stat-label">Steps</span>
+            <span class="progress__stat-value" id="stat-qsize">0</span>
+          </div>
+        </div>
+
+        <div class="progress__chart">
+          <canvas id="reward-chart" width="600" height="180"></canvas>
+        </div>
+
+        <div class="progress__best">
+          <div class="progress__best-header">Best pattern so far</div>
+          <pre class="progress__best-text" id="best-pattern">No episodes run yet.</pre>
+          <div class="progress__best-actions">
+            <button class="controls__button" id="open-best-btn" disabled>Open in sandbox</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="trainer__pane trainer__pane--generate">
+      <div class="pane__header">
+        <span class="pane__label"><span class="pane__marker"></span>Generate</span>
+        <span class="pane__counter" id="gen-status">model untrained</span>
+      </div>
+
+      <div class="generate">
+        <label class="generate__label" for="prefix">
+          Start typing a pattern — the model will continue from here.
+        </label>
+        <textarea class="generate__editor editor" id="prefix" spellcheck="false" autocomplete="off"
+          placeholder="e.g.&#10;6ch.Ring+1!,ss@[%,0]&#10;ch3,[3dc,ch2]*4,ss@[%,0]"></textarea>
+
+        <div class="generate__actions">
+          <button class="controls__button" id="generate-btn" disabled>Generate continuation</button>
+          <span class="generate__hint" id="generate-hint">Train the model first.</span>
+        </div>
+
+        <div class="generate__output">
+          <div class="generate__output-header">Generated pattern</div>
+          <pre class="generate__output-text" id="generated-out">—</pre>
+          <div class="generate__output-actions">
+            <button class="controls__button" id="open-gen-btn" disabled>Open in sandbox</button>
+            <button class="controls__button" id="copy-gen-btn" disabled>Copy</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="./feedback.js"></script>
+  <script src="./train.js"></script>
+
+</body>
+
+</html>

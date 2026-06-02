@@ -1,0 +1,12 @@
+# Python virtualenv created by run.bat
+.venv/
+
+
+
+# Python bytecode caches
+__pycache__/
+*.pyc
+
+# OS junk
+.DS_Store
+Thumbs.db

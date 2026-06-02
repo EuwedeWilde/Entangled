@@ -1,0 +1,56 @@
+.easy__locknote {
+  display: block;
+  margin-top: 0.5rem;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  border-left: 2px solid var(--accent);
+  padding: 0.4rem 0 0.4rem 0.6rem;
+}
+.easy__locknote strong {
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 10px;
+}
+
+/* Bigger progress bar than the advanced page's 6px — it's the focus here. */
+.easy__bar {
+  height: 14px;
+  margin-bottom: 0.6rem;
+}
+
+.easy__bar-meta {
+  display: flex;
+  justify-content: space-between;
+  font-family: "Space Mono", monospace;
+  font-size: 11px;
+  color: var(--ink-soft);
+}
+
+.easy__hint {
+  display: block;
+  font-family: "Montserrat", sans-serif;
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--ink-soft);
+  margin-top: 0.6rem;
+}
+.easy__hint--err {
+  color: var(--error);
+}
+.easy__hint--ok {
+  color: var(--accent);
+}
+
+.easy__actions {
+  margin-top: 1.25rem;
+}
+.easy__intro {
+  font-family: "Montserrat", sans-serif;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0 0 1.25rem;
+}
